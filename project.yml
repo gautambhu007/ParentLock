@@ -1,0 +1,106 @@
+# XcodeGen project spec — run `xcodegen generate` to produce ParentLock.xcodeproj
+# (brew install xcodegen). Update TEAM_ID and bundle IDs first.
+
+name: ParentLock
+options:
+  bundleIdPrefix: com.yourteam
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: YOURTEAMID
+    TARGETED_DEVICE_FAMILY: "2"   # iPad
+    INFOPLIST_KEY_UIRequiresFullScreen: NO
+
+targets:
+  ParentLock:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Authentication
+      - path: FamilyControls
+      - path: ManagedSettings
+      - path: DeviceActivity
+      - path: Rewards
+      - path: Notifications
+      - path: Persistence
+      - path: Utilities
+      - path: Views
+      - path: Resources
+    entitlements:
+      path: ParentLock.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups:
+          - group.com.yourteam.parentlock
+    info:
+      path: Info.plist
+      properties:
+        NSFaceIDUsageDescription: "ParentLock uses Face ID to protect the parent dashboard and approve changes."
+        UILaunchScreen: {}
+    dependencies:
+      - target: ShieldConfigurationExtension
+      - target: ShieldActionExtension
+      - target: DeviceActivityMonitorExtension
+
+  ShieldConfigurationExtension:
+    type: app-extension
+    platform: iOS
+    sources: [Extensions/ShieldConfigurationExtension]
+    entitlements:
+      path: ShieldConfig.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [group.com.yourteam.parentlock]
+    info:
+      path: Extensions/ShieldConfigurationExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+
+  ShieldActionExtension:
+    type: app-extension
+    platform: iOS
+    sources: [Extensions/ShieldActionExtension]
+    entitlements:
+      path: ShieldAction.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [group.com.yourteam.parentlock]
+    info:
+      path: Extensions/ShieldActionExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+
+  DeviceActivityMonitorExtension:
+    type: app-extension
+    platform: iOS
+    sources: [Extensions/DeviceActivityMonitorExtension]
+    entitlements:
+      path: ActivityMonitor.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [group.com.yourteam.parentlock]
+    info:
+      path: Extensions/DeviceActivityMonitorExtension/Info.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).DeviceActivityMonitorExtension
+
+  ParentLockTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests/ParentLockTests]
+    dependencies: [{ target: ParentLock }]
+
+  ParentLockUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Tests/ParentLockUITests]
+    dependencies: [{ target: ParentLock }]
