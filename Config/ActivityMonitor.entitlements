@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.yourteam.parentlock</string>
+		<string>group.com.gautam.parentlock</string>
 	</array>
 </dict>
 </plist>

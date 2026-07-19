@@ -41,7 +41,7 @@ final class ShieldActionExtension: ShieldActionDelegate {
     private func handleCommon(action: ShieldAction,
                               source: String,
                               completionHandler: @escaping (ShieldActionResponse) -> Void) {
-        let defaults = UserDefaults(suiteName: "group.com.yourteam.parentlock")
+        let defaults = UserDefaults(suiteName: "group.com.gautam.parentlock")
 
         // Count blocked attempts for reports.
         let attempts = defaults?.integer(forKey: "blockedAttemptCount") ?? 0

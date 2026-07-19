@@ -12,7 +12,7 @@ import FamilyControls
 
 enum SharedStorage {
     /// ⚠️ Must match the App Group added to the main app AND all extension targets.
-    static let appGroupID = "group.com.yourteam.parentlock"
+    static let appGroupID = "group.com.gautam.parentlock"
 
     static var defaults: UserDefaults {
         UserDefaults(suiteName: appGroupID) ?? .standard

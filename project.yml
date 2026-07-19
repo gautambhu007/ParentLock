@@ -3,7 +3,7 @@
 
 name: ParentLock
 options:
-  bundleIdPrefix: com.yourteam
+  bundleIdPrefix: com.gautam
   deploymentTarget:
     iOS: "18.0"
 settings:
@@ -34,7 +34,7 @@ targets:
       properties:
         com.apple.developer.family-controls: true
         com.apple.security.application-groups:
-          - group.com.yourteam.parentlock
+          - group.com.gautam.parentlock
     info:
       path: Info.plist
       properties:
@@ -53,7 +53,7 @@ targets:
       path: ShieldConfig.entitlements
       properties:
         com.apple.developer.family-controls: true
-        com.apple.security.application-groups: [group.com.yourteam.parentlock]
+        com.apple.security.application-groups: [group.com.gautam.parentlock]
     info:
       path: Extensions/ShieldConfigurationExtension/Info.plist
       properties:
@@ -69,7 +69,7 @@ targets:
       path: ShieldAction.entitlements
       properties:
         com.apple.developer.family-controls: true
-        com.apple.security.application-groups: [group.com.yourteam.parentlock]
+        com.apple.security.application-groups: [group.com.gautam.parentlock]
     info:
       path: Extensions/ShieldActionExtension/Info.plist
       properties:
@@ -85,7 +85,7 @@ targets:
       path: ActivityMonitor.entitlements
       properties:
         com.apple.developer.family-controls: true
-        com.apple.security.application-groups: [group.com.yourteam.parentlock]
+        com.apple.security.application-groups: [group.com.gautam.parentlock]
     info:
       path: Extensions/DeviceActivityMonitorExtension/Info.plist
       properties:

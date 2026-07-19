@@ -16,7 +16,7 @@ import UserNotifications
 
 final class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
-    private let appGroup = "group.com.yourteam.parentlock"
+    private let appGroup = "group.com.gautam.parentlock"
 
     private lazy var scheduleStore = ManagedSettingsStore(named: .init("schedule"))
     private lazy var bedtimeStore  = ManagedSettingsStore(named: .init("bedtime"))
