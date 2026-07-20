@@ -46,12 +46,19 @@ struct ParentLockApp: App {
                 .environment(dependencies.limitEngine)
                 .environment(dependencies.rewardEngine)
                 .environment(dependencies.notifications)
+                .task {
+                    // On launch, make sure blocks from a previous session are
+                    // live even if no screen re-applied them.
+                    dependencies.shieldManager.reassertPersistentShields()
+                }
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {
                     case .background:
                         dependencies.auth.lock()          // Re-lock when backgrounded
                     case .active:
                         Task { await dependencies.authorization.refreshStatus() }
+                        // Re-assert shields in case they were dropped while away.
+                        dependencies.shieldManager.reassertPersistentShields()
                     default:
                         break
                     }

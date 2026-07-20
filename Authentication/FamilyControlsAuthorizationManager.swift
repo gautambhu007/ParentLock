@@ -23,14 +23,20 @@ final class FamilyControlsAuthorizationManager {
     /// `.individual` authorizes restrictions on this device for the signed-in user.
     /// If the iPad is signed in to a child's Apple Account in Family Sharing,
     /// pass `.child` instead so the parent approves remotely.
-    func requestAuthorization(role: FamilyControlsMember = .individual) async {
+    nonisolated func requestAuthorization(role: sending FamilyControlsMember = .individual) async {
+        // `role` is created here in a nonisolated context, so handing it to
+        // the @concurrent `requestAuthorization(for:)` no longer sends a
+        // main-actor-isolated value across an isolation boundary.
+        var errorText: String?
         do {
             try await AuthorizationCenter.shared.requestAuthorization(for: role)
-            status = AuthorizationCenter.shared.authorizationStatus
-            lastError = nil
         } catch {
-            status = AuthorizationCenter.shared.authorizationStatus
-            lastError = error.localizedDescription
+            errorText = error.localizedDescription
+        }
+        let newStatus = AuthorizationCenter.shared.authorizationStatus
+        await MainActor.run {
+            status = newStatus
+            lastError = errorText
         }
     }
 

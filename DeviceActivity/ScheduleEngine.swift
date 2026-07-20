@@ -13,13 +13,13 @@ import FamilyControls
 import Observation
 
 extension DeviceActivityName {
-    static let bedtime = Self("bedtime")
+    nonisolated(unsafe) static let bedtime = Self("bedtime")
     static func schedule(_ id: UUID) -> Self { Self("schedule-\(id.uuidString)") }
     static func dailyLimit(_ id: UUID) -> Self { Self("limit-\(id.uuidString)") }
 }
 
 extension DeviceActivityEvent.Name {
-    static let limitReached = Self("limitReached")
+    nonisolated(unsafe) static let limitReached = Self("limitReached")
 }
 
 @MainActor

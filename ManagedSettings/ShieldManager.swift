@@ -13,10 +13,10 @@ import FamilyControls
 import Observation
 
 extension ManagedSettingsStore.Name {
-    static let manual   = Self("manualBlocks")
-    static let schedule = Self("schedule")
-    static let bedtime  = Self("bedtime")
-    static let limits   = Self("dailyLimits")
+    nonisolated(unsafe) static let manual   = Self("manualBlocks")
+    nonisolated(unsafe) static let schedule = Self("schedule")
+    nonisolated(unsafe) static let bedtime  = Self("bedtime")
+    nonisolated(unsafe) static let limits   = Self("dailyLimits")
 }
 
 @MainActor
@@ -53,6 +53,16 @@ final class ShieldManager {
 
     func clearManualBlocks() {
         manualStore.clearAllSettings()
+    }
+
+    /// Re-assert the persistent manual shield. Call on launch and every
+    /// foreground so a block is never silently missing — unless a
+    /// temporary unlock is currently in effect.
+    func reassertPersistentShields() {
+        if let expiry = temporaryUnlockExpiry, expiry > .now {
+            return   // parent granted a temporary all-clear; leave it be
+        }
+        applyManualBlocks()
     }
 
     // MARK: - Schedule shields (called by DeviceActivityMonitor extension too)
