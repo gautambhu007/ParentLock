@@ -2,8 +2,9 @@
 //  DashboardView.swift
 //  ParentLock
 //
-//  Parent home screen: adaptive grid of cards over a soft gradient +
-//  material background. Supports Split View / all size classes.
+//  Parent home page: branded hero header, live protection-status banner,
+//  quick stats, and grouped feature cards over a soft gradient.
+//  Adapts across Split View / all size classes.
 //
 
 import SwiftUI
@@ -12,10 +13,12 @@ import SwiftData
 struct DashboardView: View {
     @Environment(SelectionStore.self) private var selectionStore
     @Environment(ShieldManager.self) private var shieldManager
+    @Environment(FamilyControlsAuthorizationManager.self) private var authorization
     @Environment(BiometricAuthManager.self) private var auth
     @Query private var schedules: [BlockSchedule]
     @Query private var limits: [AppLimit]
     @Query private var rewards: [Reward]
+    @Query private var children: [ChildProfile]
 
     @State private var navigationPath = NavigationPath()
 
@@ -29,16 +32,30 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack(path: $navigationPath) {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 16) {
-                    card(.allowedApps, "Allowed Apps", "\(selectionStore.allowedSelection.applicationTokens.count) always available", "checkmark.circle.fill", .green)
-                    card(.blockedApps, "Blocked Apps", selectionStore.blockedSummary, "hand.raised.fill", .red)
-                    card(.schedules, "Schedules", "\(schedules.count) schedules", "calendar.badge.clock", .blue)
-                    card(.dailyLimits, "Daily Limits", "\(limits.count) limits", "hourglass", .orange)
-                    card(.rewards, "Rewards", "\(rewards.filter { !$0.isCompleted }.count) waiting", "star.fill", .yellow)
-                    card(.reports, "Reports", "Daily · Weekly · Monthly", "chart.bar.fill", .purple)
-                    card(.screenTime, "Screen Time", "Today's usage", "iphone", .teal)
-                    card(.emergencyUnlock, "Emergency Unlock", unlockSubtitle, "key.fill", .pink)
-                    card(.settings, "Settings", "Appearance · Security", "gearshape.fill", .gray)
+                VStack(spacing: 20) {
+                    HomeHeader(childName: children.first?.name)
+
+                    ProtectionStatusBanner(state: bannerState, detail: bannerDetail)
+
+                    quickStats
+
+                    section(String(localized: "Protection")) {
+                        card(.blockedApps, "Blocked Apps", selectionStore.blockedSummary, "hand.raised.fill", .red)
+                        card(.allowedApps, "Allowed Apps", "\(selectionStore.allowedSelection.applicationTokens.count) always available", "checkmark.circle.fill", .green)
+                        card(.schedules, "Schedules", scheduleSubtitle, "calendar.badge.clock", .blue)
+                        card(.dailyLimits, "Daily Limits", limitSubtitle, "hourglass", .orange)
+                    }
+
+                    section(String(localized: "Insights & Rewards")) {
+                        card(.rewards, "Rewards", "\(rewards.filter { !$0.isCompleted }.count) waiting", "star.fill", .yellow)
+                        card(.reports, "Reports", "Daily · Weekly · Monthly", "chart.bar.fill", .purple)
+                        card(.screenTime, "Screen Time", "Today's usage", "iphone", .teal)
+                    }
+
+                    section(String(localized: "Manage")) {
+                        card(.emergencyUnlock, "Emergency Unlock", unlockSubtitle, "key.fill", .pink)
+                        card(.settings, "Settings", "Appearance · Security", "gearshape.fill", .gray)
+                    }
                 }
                 .padding(20)
             }
@@ -47,7 +64,8 @@ struct DashboardView: View {
                                startPoint: .topLeading, endPoint: .bottomTrailing)
                     .ignoresSafeArea()
             }
-            .navigationTitle("ParentLock")
+            .navigationTitle("")
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Destination.self) { destination in
                 switch destination {
                 case .allowedApps:     AllowedAppsView()
@@ -64,11 +82,88 @@ struct DashboardView: View {
         }
     }
 
+    // MARK: Quick stats
+
+    private var quickStats: some View {
+        HStack(spacing: 12) {
+            StatChip(value: "\(blockedAppCount)", label: "Apps blocked",
+                     symbol: "hand.raised.fill", tint: .red)
+            StatChip(value: "\(activeScheduleCount)", label: "Active schedules",
+                     symbol: "calendar.badge.clock", tint: .blue)
+            StatChip(value: "\(blockedAttemptsToday)", label: "Blocked today",
+                     symbol: "shield.lefthalf.filled", tint: .indigo)
+        }
+    }
+
+    // MARK: Derived state
+
+    private var blockedAppCount: Int {
+        selectionStore.blockedSelection.applicationTokens.count
+            + selectionStore.blockedSelection.categoryTokens.count
+    }
+
+    private var activeScheduleCount: Int {
+        schedules.filter { $0.isEnabled }.count
+    }
+
+    private var blockedAttemptsToday: Int {
+        UserDefaults(suiteName: "group.com.gautam.parentlock")?
+            .integer(forKey: "blockedAttemptCount") ?? 0
+    }
+
+    private var isTemporarilyUnlocked: Bool {
+        if let expiry = shieldManager.temporaryUnlockExpiry, expiry > .now { return true }
+        return false
+    }
+
+    private var bannerState: ProtectionStatusBanner.State {
+        if isTemporarilyUnlocked { return .unlocked }
+        if !authorization.isAuthorized || blockedAppCount == 0 { return .attention }
+        return .active
+    }
+
+    private var bannerDetail: String {
+        if let expiry = shieldManager.temporaryUnlockExpiry, expiry > .now {
+            return String(localized: "All blocks lifted until \(expiry.formatted(date: .omitted, time: .shortened)).")
+        }
+        if !authorization.isAuthorized {
+            return String(localized: "Screen Time access is off. Tap Settings to grant it.")
+        }
+        if blockedAppCount == 0 {
+            return String(localized: "No apps are blocked yet. Choose some in Blocked Apps.")
+        }
+        return String(localized: "\(blockedAppCount) apps or categories are being protected right now.")
+    }
+
+    private var scheduleSubtitle: String {
+        let active = activeScheduleCount
+        return active > 0
+            ? String(localized: "\(active) of \(schedules.count) active")
+            : String(localized: "\(schedules.count) schedules")
+    }
+
+    private var limitSubtitle: String {
+        String(localized: "\(limits.count) limits set")
+    }
+
     private var unlockSubtitle: String {
         if let expiry = shieldManager.temporaryUnlockExpiry, expiry > .now {
-            return "Active until \(expiry.formatted(date: .omitted, time: .shortened))"
+            return String(localized: "Active until \(expiry.formatted(date: .omitted, time: .shortened))")
         }
-        return "Temporarily lift all blocks"
+        return String(localized: "Temporarily lift all blocks")
+    }
+
+    // MARK: Building blocks
+
+    @ViewBuilder
+    private func section(_ title: String,
+                         @ViewBuilder _ content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: LocalizedStringKey(title))
+            LazyVGrid(columns: columns, spacing: 16) {
+                content()
+            }
+        }
     }
 
     @ViewBuilder
