@@ -31,6 +31,8 @@ final class NotificationManager {
         case rewardExpired(task: String)
         case scheduleStarted(name: String)
         case scheduleEnded(name: String)
+        case remoteCommandApplied(action: String)
+        case remoteCommandFailed(action: String, reason: String)
 
         var title: String {
             switch self {
@@ -39,6 +41,8 @@ final class NotificationManager {
             case .rewardExpired: String(localized: "Reward expired")
             case .scheduleStarted: String(localized: "Schedule started")
             case .scheduleEnded: String(localized: "Schedule ended")
+            case .remoteCommandApplied: String(localized: "Applied on child device")
+            case .remoteCommandFailed: String(localized: "Remote command failed")
             }
         }
 
@@ -49,6 +53,8 @@ final class NotificationManager {
             case .rewardExpired(let task): String(localized: "The reward for “\(task)” has ended.")
             case .scheduleStarted(let name): String(localized: "“\(name)” is now active.")
             case .scheduleEnded(let name): String(localized: "“\(name)” has ended.")
+            case .remoteCommandApplied(let action): String(localized: "\(action) — done.")
+            case .remoteCommandFailed(let action, let reason): String(localized: "\(action) couldn't be applied: \(reason)")
             }
         }
     }

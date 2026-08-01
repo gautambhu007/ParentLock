@@ -29,6 +29,7 @@ targets:
       - path: Rewards
       - path: Notifications
       - path: Persistence
+      - path: Remote
       - path: Utilities
       - path: Views
       - path: Resources
@@ -38,11 +39,19 @@ targets:
         com.apple.developer.family-controls: true
         com.apple.security.application-groups:
           - group.com.gautam.parentlock
+        # Remote lock/unlock rides on CloudKit + silent push.
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.gautam.parentlock
+        com.apple.developer.icloud-services:
+          - CloudKit
+        aps-environment: development
     info:
       path: Info.plist
       properties:
         NSFaceIDUsageDescription: "ParentLock uses Face ID to protect the parent dashboard and approve changes."
         UILaunchScreen: {}
+        UIBackgroundModes:
+          - remote-notification
     dependencies:
       - target: ShieldConfigurationExtension
       - target: ShieldActionExtension

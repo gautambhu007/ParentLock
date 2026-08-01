@@ -27,6 +27,27 @@ enum SharedStorage {
         case temporaryUnlockExpiry     // Date — active emergency/temporary unlock
         case blockedAttemptCount       // Incremented by ShieldActionExtension for reports
         case shieldTheme               // Custom shield theme name
+
+        // MARK: Remote control
+        case deviceRole                // DeviceRole — parent / child / unpaired
+        case pairingCode               // String — shared secret linking the two devices
+        case pairedDeviceName          // String — name of the device on the other end
+        case lockGroups                // [RemoteLockGroup] metadata (id + name + symbol)
+        case lockGroupSelections       // [UUID: FamilyActivitySelection] — device-local
+        case remoteLockState           // RemoteLockState — what the parent has locked
+        case appliedCommandIDs         // [UUID] — commands already applied (dedupe)
+    }
+
+    static func saveString(_ value: String?, for key: Key) {
+        if let value {
+            defaults.set(value, forKey: key.rawValue)
+        } else {
+            defaults.removeObject(forKey: key.rawValue)
+        }
+    }
+
+    static func loadString(for key: Key) -> String? {
+        defaults.string(forKey: key.rawValue)
     }
 
     static func saveCodable<T: Codable>(_ value: T, for key: Key) {
