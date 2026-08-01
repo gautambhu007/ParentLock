@@ -17,25 +17,34 @@ extension ManagedSettingsStore.Name {
     nonisolated(unsafe) static let schedule = Self("schedule")
     nonisolated(unsafe) static let bedtime  = Self("bedtime")
     nonisolated(unsafe) static let limits   = Self("dailyLimits")
+    nonisolated(unsafe) static let remote   = Self("remoteControl")
 }
 
 @MainActor
 @Observable
 final class ShieldManager {
     private let selectionStore: SelectionStore
+    private let lockGroupStore: LockGroupStore
 
     private let manualStore   = ManagedSettingsStore(named: .manual)
     private let scheduleStore = ManagedSettingsStore(named: .schedule)
     private let bedtimeStore  = ManagedSettingsStore(named: .bedtime)
     private let limitsStore   = ManagedSettingsStore(named: .limits)
+    private let remoteStore   = ManagedSettingsStore(named: .remote)
 
     /// Expiry of an active emergency / temporary unlock, if any.
     private(set) var temporaryUnlockExpiry: Date?
     private var restoreTask: Task<Void, Never>?
 
-    init(selectionStore: SelectionStore) {
+    /// What the parent device has asked this device to lock. Persisted so a
+    /// relaunch or reboot re-asserts the same shields.
+    private(set) var remoteLockState: RemoteLockState
+
+    init(selectionStore: SelectionStore, lockGroupStore: LockGroupStore) {
         self.selectionStore = selectionStore
+        self.lockGroupStore = lockGroupStore
         temporaryUnlockExpiry = SharedStorage.loadCodable(Date.self, for: .temporaryUnlockExpiry)
+        remoteLockState = SharedStorage.loadCodable(RemoteLockState.self, for: .remoteLockState) ?? .none
         scheduleRestoreIfNeeded()
     }
 
@@ -63,6 +72,70 @@ final class ShieldManager {
             return   // parent granted a temporary all-clear; leave it be
         }
         applyManualBlocks()
+        applyRemoteLockState()
+    }
+
+    // MARK: - Remote control (child device)
+
+    /// Lock or release everything the parent can reach, except the
+    /// always-allowed apps. Applied on top of — never instead of — the local
+    /// blocks, so a remote unlock can't undo what the parent set up on device.
+    func setRemoteAllLocked(_ locked: Bool) {
+        remoteLockState.isAllLocked = locked
+        if !locked { remoteLockState.lockedGroupIDs.removeAll() }
+        persistAndApplyRemoteState()
+    }
+
+    func setRemoteGroup(_ id: UUID, locked: Bool) {
+        if locked {
+            remoteLockState.lockedGroupIDs.insert(id)
+        } else {
+            remoteLockState.lockedGroupIDs.remove(id)
+        }
+        persistAndApplyRemoteState()
+    }
+
+    func clearRemoteLocks() {
+        remoteLockState = .none
+        persistAndApplyRemoteState()
+    }
+
+    private func persistAndApplyRemoteState() {
+        SharedStorage.saveCodable(remoteLockState, for: .remoteLockState)
+        applyRemoteLockState()
+    }
+
+    /// Translate `remoteLockState` into the remote store's shield.
+    private func applyRemoteLockState() {
+        if let expiry = temporaryUnlockExpiry, expiry > .now {
+            return   // an emergency unlock outranks remote locks until it expires
+        }
+        guard !remoteLockState.isEmpty else {
+            remoteStore.clearAllSettings()
+            return
+        }
+
+        if remoteLockState.isAllLocked {
+            // `.all(except:)` covers every app on the device, including ones
+            // installed after the command was sent.
+            remoteStore.shield.applicationCategories =
+                .all(except: selectionStore.allowedSelection.applicationTokens)
+            remoteStore.shield.webDomainCategories = .all()
+            remoteStore.shield.applications = nil
+            return
+        }
+
+        let selections = remoteLockState.lockedGroupIDs.map { lockGroupStore.selection(for: $0) }
+        let apps = selections.reduce(into: Set<ApplicationToken>()) { $0.formUnion($1.applicationTokens) }
+        let categories = selections.reduce(into: Set<ActivityCategoryToken>()) { $0.formUnion($1.categoryTokens) }
+        let domains = selections.reduce(into: Set<WebDomainToken>()) { $0.formUnion($1.webDomainTokens) }
+
+        remoteStore.shield.webDomainCategories = nil
+        remoteStore.shield.applications = apps.isEmpty ? nil : apps
+        remoteStore.shield.applicationCategories = categories.isEmpty
+            ? nil
+            : .specific(categories, except: selectionStore.allowedSelection.applicationTokens)
+        remoteStore.shield.webDomains = domains.isEmpty ? nil : domains
     }
 
     // MARK: - Schedule shields (called by DeviceActivityMonitor extension too)
@@ -100,6 +173,9 @@ final class ShieldManager {
         scheduleStore.clearAllSettings()
         bedtimeStore.clearAllSettings()
         limitsStore.clearAllSettings()
+        // The remote lock is lifted too, but `remoteLockState` is kept so the
+        // parent's locks come back when the unlock expires.
+        remoteStore.clearAllSettings()
 
         let expiry = Date.now.addingTimeInterval(duration)
         temporaryUnlockExpiry = expiry
@@ -114,6 +190,7 @@ final class ShieldManager {
         temporaryUnlockExpiry = nil
         SharedStorage.remove(.temporaryUnlockExpiry)
         applyManualBlocks()
+        applyRemoteLockState()
         // Schedule + limit shields are restored by their DeviceActivity intervals.
     }
 

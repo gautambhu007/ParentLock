@@ -129,6 +129,11 @@
 			path = Utilities;
 			sourceTree = "<group>";
 		};
+		A10000000000000000000011 /* Remote */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Remote;
+			sourceTree = "<group>";
+		};
 		A1000000000000000000000A /* Views */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Views;
@@ -225,6 +230,7 @@
 				A10000000000000000000007 /* Notifications */,
 				A10000000000000000000008 /* Persistence */,
 				A10000000000000000000009 /* Utilities */,
+				A10000000000000000000011 /* Remote */,
 				A1000000000000000000000A /* Views */,
 				A1000000000000000000000B /* Resources */,
 				A1000000000000000000000C /* Extensions/ShieldConfigurationExtension */,
@@ -293,6 +299,7 @@
 				A10000000000000000000007 /* Notifications */,
 				A10000000000000000000008 /* Persistence */,
 				A10000000000000000000009 /* Utilities */,
+				A10000000000000000000011 /* Remote */,
 				A1000000000000000000000A /* Views */,
 				A1000000000000000000000B /* Resources */,
 			);
@@ -631,6 +638,7 @@
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "ParentLock uses Face ID to protect the parent dashboard and approve changes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -660,6 +668,7 @@
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "ParentLock uses Face ID to protect the parent dashboard and approve changes.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				LD_RUNPATH_SEARCH_PATHS = (

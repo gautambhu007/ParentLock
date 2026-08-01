@@ -15,6 +15,7 @@ struct DashboardView: View {
     @Environment(ShieldManager.self) private var shieldManager
     @Environment(FamilyControlsAuthorizationManager.self) private var authorization
     @Environment(BiometricAuthManager.self) private var auth
+    @Environment(RemoteControlCoordinator.self) private var remote
     @Query private var schedules: [BlockSchedule]
     @Query private var limits: [AppLimit]
     @Query private var rewards: [Reward]
@@ -27,6 +28,7 @@ struct DashboardView: View {
     enum Destination: Hashable {
         case allowedApps, blockedApps, schedules, dailyLimits
         case rewards, reports, screenTime, emergencyUnlock, settings
+        case remoteControl
     }
 
     var body: some View {
@@ -44,6 +46,7 @@ struct DashboardView: View {
                         card(.allowedApps, "Allowed Apps", "\(selectionStore.allowedSelection.applicationTokens.count) always available", "checkmark.circle.fill", .green)
                         card(.schedules, "Schedules", scheduleSubtitle, "calendar.badge.clock", .blue)
                         card(.dailyLimits, "Daily Limits", limitSubtitle, "hourglass", .orange)
+                        card(.remoteControl, "Remote Control", remoteSubtitle, "antenna.radiowaves.left.and.right", .indigo)
                     }
 
                     section(String(localized: "Insights & Rewards")) {
@@ -76,6 +79,7 @@ struct DashboardView: View {
                 case .reports:         ReportsView()
                 case .screenTime:      ReportsView(initialRange: .daily)
                 case .emergencyUnlock: EmergencyUnlockView()
+                case .remoteControl:   RemoteControlView()
                 case .settings:        SettingsView()
                 }
             }
@@ -144,6 +148,25 @@ struct DashboardView: View {
 
     private var limitSubtitle: String {
         String(localized: "\(limits.count) limits set")
+    }
+
+    private var remoteSubtitle: String {
+        switch remote.role {
+        case .unpaired:
+            return String(localized: "Pair a child device")
+        case .parent:
+            if let status = remote.childStatus {
+                let reach = status.isOnline
+                    ? String(localized: "online")
+                    : String(localized: "offline")
+                return status.isAllLocked
+                    ? String(localized: "All apps locked · \(reach)")
+                    : String(localized: "\(status.lockedGroupIDs.count) groups locked · \(reach)")
+            }
+            return String(localized: "Waiting for the child device")
+        case .child:
+            return String(localized: "Managed by \(remote.pairedDeviceName ?? String(localized: "a parent device"))")
+        }
     }
 
     private var unlockSubtitle: String {
